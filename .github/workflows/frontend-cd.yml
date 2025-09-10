@@ -18,7 +18,7 @@ on:
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        default: 'week08aksbinara'
+        default: 'week08aksbinarap'
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
