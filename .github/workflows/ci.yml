@@ -1,0 +1,102 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      product_db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: products
+        ports:
+          - 5432:5432
+      order_db:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: orders
+        ports:
+          - 5433:5432
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        pip install -r backend/product_service/requirements.txt
+        pip install -r backend/order_service/requirements.txt
+        pip install pytest
+
+    - name: Run product service tests
+      working-directory: backend/product_service
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5432
+        POSTGRES_DB: products
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+      run: pytest tests/ -v
+
+    - name: Run order service tests
+      working-directory: backend/order_service
+      env:
+        POSTGRES_HOST: localhost
+        POSTGRES_PORT: 5433
+        POSTGRES_DB: orders
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+      run: pytest tests/ -v
+
+  frontend-validation:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate frontend files
+      run: |
+        echo "Checking frontend file structure..."
+        ls -la frontend/
+        
+        echo "Checking if main.js exists..."
+        if [ -f "frontend/main.js" ]; then
+          echo "✓ main.js found"
+          echo "File size: $(wc -l < frontend/main.js) lines"
+        else
+          echo "✗ main.js not found"
+          exit 1
+        fi
+        
+        echo "Checking if index.html exists..."
+        if [ -f "frontend/index.html" ]; then
+          echo "✓ index.html found"
+        else
+          echo "✗ index.html not found" 
+          exit 1
+        fi
+
+    - name: Validate Dockerfile
+      working-directory: frontend
+      run: |
+        if [ -f "Dockerfile" ]; then
+          echo "✓ Dockerfile found"
+          cat Dockerfile
+        else
+          echo "✗ Dockerfile not found"
+          exit 1
+        fi
